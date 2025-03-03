@@ -3,7 +3,7 @@ const { MongoClient } = require('mongodb');
 const MONGODB_URI = 'mongodb+srv://nemhpay:KgvyuYrFt9kosjZ4@myfirstcluster.2vihi.mongodb.net/?retryWrites=true&w=majority&appName=MyFirstCluster';
 const MONGODB_DB_NAME = 'lego';
 
-async function connectDB() {
+async function connectToDatabase() {
     console.log("Tentative de connexion à MongoDB...");
 
     try {
@@ -18,8 +18,11 @@ async function connectDB() {
     }
 }
 
+
+module.exports = connectToDatabase; // <--- Assure-toi que c'est bien comme ça
+
 async function insertDeals() {
-    const { client, db } = await connectDB();
+    const { client, db } = await connectToDatabase();
 
     try {
         const deals = []; // Ajoute ici les données que tu veux insérer
