@@ -1,35 +1,52 @@
-const axios = require('axios');
+const fetch = require('node-fetch');
 const cheerio = require('cheerio');
 
-async function scrape(url) {
-    try {
-        console.log(`Scraping ${url}...`);
-        const { data } = await axios.get(url);
-        const $ = cheerio.load(data);
-        const deals = [];
+/**
+ * Parse webpage data response
+ * @param  {String} data - html response
+ * @return {Object} deal
+ */
+const parse = data => {
+  const $ = cheerio.load(data, {'xmlMode': true});
 
-        $('.product').each((index, element) => {
-            const title = $(element).find('.product-title a').text().trim();
-            const priceText = $(element).find('.price').text().replace(/[^\d.,]/g, '').replace(',', '.');
-            const price = parseFloat(priceText) || 0;
+  return $('div.prods a')
+    .map((i, element) => {
+      const price = parseInt(
+        $(element)
+          .find('span.prodl-prix span')
+          .text()
+      );
 
-            const discountText = $(element).find('.discount-badge').text().replace(/[^\d]/g, '');
-            const discount = discountText ? parseInt(discountText, 10) : 0;
+      const discount = Math.abs(parseInt(
+        $(element)
+          .find('span.prodl-reduc')
+          .text()
+      ));
 
-            let link = $(element).find('.product-title a').attr('href');
-            link = link ? (link.startsWith('http') ? link : `https://www.avenuedelabrique.com${link}`) : '';
+      return {
+        discount,
+        price,
+        'title': $(element).attr('title'),
+      };
+    })
+    .get();
+};
 
-            if (title && price && link) {
-                deals.push({ title, price, discount, link });
-            }
-        });
+/**
+ * Scrape a given url page
+ * @param {String} url - url to parse
+ * @returns 
+ */
+module.exports.scrape = async url => {
+  const response = await fetch(url);
 
-        console.log(`Deals trouvés : ${deals.length}`);
-        return deals;
-    } catch (error) {
-        console.error("Erreur lors du scraping :", error.message);
-        return [];
-    }
-}
+  if (response.ok) {
+    const body = await response.text();
 
-module.exports = { scrape };
+    return parse(body);
+  }
+
+  console.error(response);
+
+  return null;
+};
